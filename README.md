@@ -11,7 +11,7 @@ This is the code we submit together with the paper [TO-ADD], submitted to [TO-AD
 
 We used Python 3.10.8. If you plan to use the OpenAI API, you need to add your API key. To do, create a file `src/settings.py` and add your key:
 ```python
-API_KEY_GPT = "your-key
+API_KEY_GPT = "your-key"
 ```
 
 Installing rpy2 can cause problems with conda, hence we recommend to first install it before installing all the other dependencies.
