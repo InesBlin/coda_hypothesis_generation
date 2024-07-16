@@ -62,7 +62,7 @@ fig.update_xaxes(title_text='Feature')
 fig.update_yaxes(title_text='Importance Feature')
 fig.write_image(f"./experiments/visualisations/feat_importance_classification.pdf", format='pdf')
 
-from src.lp.blank_node_lp import BNLinkPredictor
+from src.hg.blank_node_lp import BNLinkPredictor
 folder_in = "data/hypotheses/anyburl"
 td = ["train", "val", "test"]
 for label in LABELS:

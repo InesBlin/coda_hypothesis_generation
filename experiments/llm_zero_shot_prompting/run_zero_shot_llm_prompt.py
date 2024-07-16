@@ -10,7 +10,7 @@ from tqdm import tqdm
 from datetime import datetime
 from loguru import logger
 import pandas as pd
-from src.lp.llm import LLMHypothesisGeneration
+from src.hg.llm import LLMHypothesisGeneration
 
 MODEL_3 = "gpt-3.5-turbo-0125"
 MODEL_4 = "gpt-4o"

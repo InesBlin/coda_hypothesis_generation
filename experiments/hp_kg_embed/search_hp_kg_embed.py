@@ -10,7 +10,7 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import ParameterGrid
-from src.lp.kg_embedder import KGEmbedder
+from src.hg.kg_embedder import KGEmbedder
 
 METRICS = ['hits@1', 'hits@3', 'hits@10', 'mean_reciprocal_rank']
 

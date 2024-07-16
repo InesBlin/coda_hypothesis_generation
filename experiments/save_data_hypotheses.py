@@ -12,7 +12,7 @@ import os
 import json
 import click
 from loguru import logger
-from src.lp.compute_hypotheses import HypothesesBuilder
+from src.hg.compute_hypotheses import HypothesesBuilder
 
 TYPE_HYPOTHESIS = ['regular', 'var_mod', 'study_mod']
 ES_MEASURE = ['d']

@@ -8,7 +8,7 @@ from loguru import logger
 from typing import Tuple
 import pandas as pd
 from pykeen.triples import TriplesFactory
-from src.lp.blank_node_lp import check_tvt_prop, split_effect_triples
+from src.hg.blank_node_lp import check_tvt_prop, split_effect_triples
 
 TYPE_HYPOTHESIS = ['regular', 'var_mod', 'study_mod']
 ES_MEASURE = ['d']

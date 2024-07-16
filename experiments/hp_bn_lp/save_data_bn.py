@@ -8,7 +8,7 @@ import click
 import pandas as pd
 from tqdm import tqdm
 from loguru import logger
-from src.lp.build_blank_h_kg import BlankHypothesesKGBuilder
+from src.hg.build_blank_h_kg import BlankHypothesesKGBuilder
 
 TYPE_HYPOTHESIS = ['regular', 'var_mod', 'study_mod']
 ES_MEASURE = ['d']

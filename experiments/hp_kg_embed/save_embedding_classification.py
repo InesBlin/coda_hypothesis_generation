@@ -7,7 +7,7 @@ import click
 import pandas as pd
 import numpy as np
 from loguru import logger
-from src.lp.embed_hypotheses import HypothesesEmbedder
+from src.hg.embed_hypotheses import HypothesesEmbedder
 
 ES_MEASURES = ["d", "r"]
 LABELS = ["regular", "var_mod", "study_mod"]

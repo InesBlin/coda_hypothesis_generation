@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from sklearn.model_selection import ParameterGrid
-from src.lp.blank_node_lp import BNLinkPredictor
+from src.hg.blank_node_lp import BNLinkPredictor
 
 METRICS = ['hits@1', 'hits@3', 'hits@10', 'mean_reciprocal_rank']
 ES_MEASURES = ["d"]

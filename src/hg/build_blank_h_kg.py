@@ -7,7 +7,7 @@ from typing import Union
 import pandas as pd
 from tqdm import tqdm
 from kglab.helpers.variables import STR_RDF, STR_RDFS
-from src.lp.sparql_queries import EFFECT_CONSTRUCT_T
+from src.hg.sparql_queries import EFFECT_CONSTRUCT_T
 
 def rdflib_to_pd(graph):
     """ Rdflib graph to pandas df with columns ["subject", "predicate", "object"] """

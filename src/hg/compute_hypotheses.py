@@ -14,7 +14,7 @@ from loguru import logger
 from validator_collection import checkers
 from kglab.helpers.variables import HEADERS_CSV, HEADERS_RDF_XML
 from kglab.helpers.kg_query import run_query
-from src.lp.sparql_queries import HB_REGULAR_T, TREATMENT_VALS_T_REGULAR, \
+from src.hg.sparql_queries import HB_REGULAR_T, TREATMENT_VALS_T_REGULAR, \
     TREATMENT_VALS_T_VAR_MOD, HB_STUDY_T, LABELS_QUERY
 
 
