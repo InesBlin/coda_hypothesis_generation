@@ -96,4 +96,5 @@ class LLMHypothesisGeneration:
 if __name__ == '__main__':
     for th in ['regular', 'var_mod', 'study_mod']:
         LLMHG = LLMHypothesisGeneration(type_hypothesis=th)
-        print(f"TH: {th}\n{LLMHG.prompt}\n=====\n")
+        PROMPT = LLMHG.prompt.replace('_', '\\_')
+        print(f"TH: {th}\n{PROMPT}\n=====\n")
