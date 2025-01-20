@@ -5,7 +5,9 @@ Adapted from the original code: https://github.com/roosyay/CoDa_Hypotheses
 
 """
 import math
-from typing import Union
+import click
+import json
+from typing import Union, Dict
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
@@ -18,9 +20,17 @@ from src.hg.sparql_queries import HB_REGULAR_T, TREATMENT_VALS_T_REGULAR, \
     TREATMENT_VALS_T_VAR_MOD, HB_STUDY_T, LABELS_QUERY
 
 
+TYPE_H_TO_TREAT_VALS = {
+    'regular': TREATMENT_VALS_T_REGULAR,
+    'var_mod': TREATMENT_VALS_T_VAR_MOD,
+    'study_mod': TREATMENT_VALS_T_REGULAR,
+}
+
+
 class HypothesesBuilder:
     """ Main class to build n-ary hypotheses from CoDa Databank """
-    def __init__(self, type_h: str, es_measure: str, mod_to_category: Union[dict, None] = None):
+    def __init__(self, type_h: str, es_measure: str, mod_to_category: Union[dict, None] = None,
+                 type_h_to_treat_vals: Dict = TYPE_H_TO_TREAT_VALS):
         """ Init main variables 
         - `type_h` is the type of hypothesis to extract, either `regular`,
         `numerical` or `categorical` 
@@ -43,21 +53,17 @@ class HypothesesBuilder:
             'var_mod': HB_REGULAR_T.replace("[es_measure]", es_measure),
             'study_mod': HB_STUDY_T.replace("[es_measure]", es_measure),
         }
-        self.type_h_to_treat_vals = {
-            'regular': TREATMENT_VALS_T_REGULAR,
-            'var_mod': TREATMENT_VALS_T_VAR_MOD,
-            'study_mod': TREATMENT_VALS_T_REGULAR,
-        }
+        self.type_h_to_treat_vals = type_h_to_treat_vals
         self.type_h_to_make_blank_h = {
             'regular': self.make_final_iv,
             'var_mod': self.make_final_iv,
             'study_mod': self.make_final_iv,
         }
         self.type_h_to_iv_and_cats_cols = {
-            'regular': ['iv', 'cat_t1', 'cat_t2', 'number_iv'],
-            'var_mod': ['iv', 'cat_t1', 'cat_t2', 'number_iv',
+            'regular': ['iv_1', 'iv_2', 'cat_t1', 'cat_t2', 'number_iv'],
+            'var_mod': ['iv_1', 'iv_2', 'cat_t1', 'cat_t2', 'number_iv',
                         'mod', 'mod_t1', 'mod_t2', 'number_mod'],
-            'study_mod': ['iv', 'cat_t1', 'cat_t2', 'number_iv',
+            'study_mod': ['iv_1', 'iv_2', 'cat_t1', 'cat_t2', 'number_iv',
                           'mod', 'mod_val', 'number_mod'],
         }
 
@@ -67,7 +73,7 @@ class HypothesesBuilder:
             'https://data.cooperationdatabank.org/vocab/prop/nCondition',
             'https://data.cooperationdatabank.org/vocab/prop/sDforCondition', 
             'https://data.cooperationdatabank.org/vocab/prop/proportionOfCooperationCondition', 
-            'https://data.cooperationdatabank.org/vocab/prop/individualDifferenceLevel',
+            # 'https://data.cooperationdatabank.org/vocab/prop/individualDifferenceLevel',
             'https://data.cooperationdatabank.org/vocab/prop/nbOfLevels']
         self.es_bins = [-np.inf, -0.5, -0.2, 0.2, 0.5, np.inf]
         self.es_labels = ['LargeMediumNegativeES', 'SmallNegativeES', 'NullFinding',
@@ -100,14 +106,22 @@ class HypothesesBuilder:
                 headers=HEADERS_CSV)
             # Filter out some values: (1) same treatment values 
             # (2) certain properties (3) literal objects
-            for (pred, col1, col2) in [("iv", "o1", "o2"), ("mod", "mod_t1", "mod_t2")]:
-                if all(x in curr_treat.columns for x in (pred, col1, col2)):
+            for (col1, col2) in [
+                ("cat_t1", "cat_t2"), ("mod_t1", "mod_t2"),]:
+                if all(x in curr_treat.columns for x in (col1, col2)):
                     curr_treat[col1] = curr_treat[col1].astype("string")
                     curr_treat[col2] = curr_treat[col2].astype("string")
                     curr_treat = curr_treat[(curr_treat[col1] != curr_treat[col2]) & \
-                        (~curr_treat.iv.isin(self.treat_prop_filter_out))]
-                    curr_treat = curr_treat[(curr_treat[col1].str.startswith('http')) & \
-                        (curr_treat[col2].str.startswith('http'))]
+                        (~curr_treat.iv_1.isin(self.treat_prop_filter_out)) & \
+                            (~curr_treat.iv_2.isin(self.treat_prop_filter_out))]
+                    curr_treat = curr_treat[(curr_treat[col1].str.startswith('http')) | \
+                        (curr_treat[col1].str.lower().isin(["true", "false"]))]
+                    curr_treat = curr_treat[(curr_treat[col2].str.startswith('http')) | \
+                        (curr_treat[col2].str.lower().isin(["true", "false"]))]
+                    # curr_treat = curr_treat[(curr_treat[col1].str.startswith('http')) & \
+                    #     (curr_treat[col2].str.startswith('http'))]
+            # for pred in ["iv_1", "iv_2"]:
+            #     curr_treat = curr_treat[~curr_treat[pred].isin(self.treat_prop_filter_out)]
 
             if isinstance(df_treat, pd.DataFrame):
                 df_treat = pd.concat([df_treat, curr_treat])
@@ -128,58 +142,66 @@ class HypothesesBuilder:
         if "mod" in observations.columns:
             observations = observations[~observations["mod"].isin(self.mod_filter_out)]
         
-        observations = observations[~observations["iv"].isin(self.mod_filter_out)]
+        observations = observations[~observations["iv_1"].isin(self.mod_filter_out)]
+        observations = observations[~observations["iv_2"].isin(self.mod_filter_out)]
 
         return observations
 
     @staticmethod
     def get_num_hypothesis_three(obs, row, i, cols, ivs_and_cats):
         """ Get num of hypothesis for a set of cols
-        cols: [pred, val1, val2]
+        cols: [pred1, pred2, val1, val2]
         works both for moderators and regular variables 
         
         cols:
-        - ['iv', 'cat_t1', 'cat_t2']
-        - ['mod', 'mod_t1', 'mod_t2'] """
-        pred, val1, val2 = row[cols[0]], row[cols[1]], row[cols[2]]
+        - ['iv_1', 'iv_2', 'cat_t1', 'cat_t2', 'number_iv']
+        - ['mod', 'mod', 'mod_t1', 'mod_t2', 'number_mod'] """
+        pred1, pred2, val1, val2 = row[cols[0]], row[cols[1]], row[cols[2]], row[cols[3]]
         update_ivs_and_cats = False
 
         filtered = ivs_and_cats[
-            (ivs_and_cats[cols[0]] == pred) & \
-                (ivs_and_cats[cols[1]] == val1) & \
-                    (ivs_and_cats[cols[2]] == val2)
+            (ivs_and_cats[cols[0]] == pred1) & \
+                (ivs_and_cats[cols[1]] == pred2) & \
+                    (ivs_and_cats[cols[2]] == val1) & \
+                        (ivs_and_cats[cols[3]] == val2)
         ]
         filtered_reverse = ivs_and_cats[
-            (ivs_and_cats[cols[0]] == pred) & \
-                (ivs_and_cats[cols[1]] == val2) & \
-                    (ivs_and_cats[cols[2]] == val1)
+            (ivs_and_cats[cols[0]] == pred2) & \
+                (ivs_and_cats[cols[1]] == pred1) & \
+                    (ivs_and_cats[cols[2]] == val2) & \
+                        (ivs_and_cats[cols[3]] == val1)
         ]
         f_shape, fr_shape = filtered.shape[0], filtered_reverse.shape[0]
 
         if (f_shape == 0) and (fr_shape == 0):
 
             try:
-                num = ivs_and_cats[cols[0]].value_counts()[pred]+1
+                num = ivs_and_cats[cols[0]].value_counts()[pred1] + \
+                    ivs_and_cats[cols[1]].value_counts()[pred2] + 1
             except:
                 num = 1
             update_ivs_and_cats = True
 
         elif f_shape > 0:
-            num = ivs_and_cats.loc[(ivs_and_cats[cols[0]] == pred) & \
-                                   (ivs_and_cats[cols[1]] == val1) & \
-                                   (ivs_and_cats[cols[2]] == val2)][cols[3]].values[0]
+            num = ivs_and_cats.loc[(ivs_and_cats[cols[0]] == pred1) & \
+                                   (ivs_and_cats[cols[1]] == pred2) & \
+                                   (ivs_and_cats[cols[2]] == val1) & \
+                                   (ivs_and_cats[cols[3]] == val2)][cols[4]].values[0]
 
         else:  # fr_shape > 0
-            obs.at[i, cols[1]] = val2
-            obs.at[i, cols[2]] = val1
-            if cols[0] == 'iv':
+            obs.at[i, cols[0]] = pred2
+            obs.at[i, cols[1]] = pred1
+            obs.at[i, cols[2]] = val2
+            obs.at[i, cols[3]] = val1
+            if cols[0] == 'iv_1':
                 obs.at[i, 'ES'] = row['ES'] * -1
                 obs.at[i, 'ESUpper'] = row['ESUpper'] * -1
                 obs.at[i, 'ESLower'] = row['ESLower'] * -1
 
-            num = ivs_and_cats.loc[(ivs_and_cats[cols[0]] == pred) & \
-                                   (ivs_and_cats[cols[1]] == val2) & \
-                                   (ivs_and_cats[cols[2]] == val1)][cols[3]].values[0]
+            num = ivs_and_cats.loc[(ivs_and_cats[cols[0]] == pred1) & \
+                                   (ivs_and_cats[cols[1]] == pred2) & \
+                                   (ivs_and_cats[cols[2]] == val2) & \
+                                   (ivs_and_cats[cols[3]] == val1)][cols[4]].values[0]
         
         return num, obs, ivs_and_cats, update_ivs_and_cats
 
@@ -221,43 +243,43 @@ class HypothesesBuilder:
         for i, row in tqdm(obs.iterrows(), total=len(obs)):
             if self.type_h == "regular":
                 num, obs, ivs_and_cats, update_reg = self.get_num_hypothesis_three(
-                    obs=obs, row=row, i=i, cols=['iv', 'cat_t1', 'cat_t2', 'number_iv'],
+                    obs=obs, row=row, i=i, cols=['iv_1', 'iv_2', 'cat_t1', 'cat_t2', 'number_iv'],
                     ivs_and_cats=ivs_and_cats)
                 if update_reg:
-                    df_row = pd.DataFrame([[row['iv'], row['cat_t1'], row['cat_t2'], num]],
+                    df_row = pd.DataFrame([[row['iv_1'], row['iv_2'], row['cat_t1'], row['cat_t2'], num]],
                                             columns=self.type_h_to_iv_and_cats_cols[self.type_h])
                     ivs_and_cats = pd.concat([ivs_and_cats, df_row])
-                obs.at[i, 'iv_new'] = row['iv'] + str('_H') + str(num)
+                obs.at[i, 'iv_new'] = row['iv_1'] + '_' + row['iv_2'] + str('_H') + str(num)
 
             if self.type_h == "var_mod":
                 num_1, obs, ivs_and_cats, update_reg = self.get_num_hypothesis_three(
-                    obs=obs, row=row, i=i, cols=['iv', 'cat_t1', 'cat_t2', 'number_iv'],
+                    obs=obs, row=row, i=i, cols=['iv_1', 'iv_2', 'cat_t1', 'cat_t2', 'number_iv'],
                     ivs_and_cats=ivs_and_cats)
                 num_2, obs, ivs_and_cats, update_var_mod = self.get_num_hypothesis_three(
-                    obs=obs, row=row, i=i, cols=['mod', 'mod_t1', 'mod_t2', 'number_mod'],
+                    obs=obs, row=row, i=i, cols=['mod', 'mod', 'mod_t1', 'mod_t2', 'number_mod'],
                     ivs_and_cats=ivs_and_cats)
                 if (update_reg or update_var_mod):
                     df_row = pd.DataFrame([[
-                        row['iv'], row['cat_t1'], row['cat_t2'], num_1,
+                        row['iv_1'], row['iv_2'], row['cat_t1'], row['cat_t2'], num_1,
                         row['mod'], row['mod_t1'], row['mod_t2'], num_2]],
                         columns=self.type_h_to_iv_and_cats_cols[self.type_h])
                     ivs_and_cats = pd.concat([ivs_and_cats, df_row])
-                obs.at[i, 'iv_new'] = row['iv'] + "_" + row["mod"] + str('_H') + str(num_1) + "_" + str(num_2)
+                obs.at[i, 'iv_new'] = row['iv_1'] + "_" + row['iv_2'] + "_" + row["mod"] + str('_H') + str(num_1) + "_" + str(num_2)
             
             if self.type_h == "study_mod":
                 num_1, obs, ivs_and_cats, update_reg = self.get_num_hypothesis_three(
-                    obs=obs, row=row, i=i, cols=['iv', 'cat_t1', 'cat_t2', 'number_iv'],
+                    obs=obs, row=row, i=i, cols=['iv_1', 'iv_2', 'cat_t1', 'cat_t2', 'number_iv'],
                     ivs_and_cats=ivs_and_cats)
                 num_2, obs, ivs_and_cats, update_var_mod = self.get_num_hypothesis_two(
                     obs=obs, row=row, i=i, cols=['mod', 'mod_val', 'number_mod'],
                     ivs_and_cats=ivs_and_cats)
                 if (update_reg or update_var_mod):
                     df_row = pd.DataFrame([[
-                        row['iv'], row['cat_t1'], row['cat_t2'], num_1,
+                        row['iv_1'], row['iv_2'], row['cat_t1'], row['cat_t2'], num_1,
                         row['mod'], row['mod_val'], num_2]],
                         columns=self.type_h_to_iv_and_cats_cols[self.type_h])
                     ivs_and_cats = pd.concat([ivs_and_cats, df_row])
-                obs.at[i, 'iv_new'] = row['iv'] + "_" + row["mod"] + str('_H') + str(num_1) + "_" + str(num_2)
+                obs.at[i, 'iv_new'] = row['iv_1'] + "_" + row['iv_2'] + "_" + row["mod"] + str('_H') + str(num_1) + "_" + str(num_2)
 
         return obs
 
@@ -274,9 +296,10 @@ class HypothesesBuilder:
             sparql_endpoint=sparql_endpoint,
             headers=HEADERS_CSV
         ).set_index("n")['nl'].to_dict()
-        for col in ["iv", "cat_t1", "cat_t2", "mod", "mod_t1", "mod_t2", "mod_val"]:
+        for col in ["iv_1", "iv_2", "cat_t1", "cat_t2", "mod", "mod_t1", "mod_t2", "mod_val"]:
             if col in obs.columns:
-                obs[f"{col}_label"] = obs[col].apply(lambda x: labels.get(x, str(x).split('/')[-1]))
+                obs[f"{col}_label"] = obs[col].apply(
+                    lambda x: labels.get(x, str(x).rsplit('/', maxsplit=1)[-1]))
         return obs
 
     def __call__(self, sparql_endpoint, observations: Union[str, None] = None,
@@ -287,6 +310,7 @@ class HypothesesBuilder:
             observations = self.get_observations(sparql_endpoint=sparql_endpoint)
             logger.info("Adding hypotheses as blank nodes")
             observations = self.type_h_to_make_blank_h[self.type_h](observations)
+            observations.to_csv("obs.csv")
             logger.info("Categorizing effect sizes")
             observations = self.bin_effect_size(obs=observations)
             logger.info("Adding labels")
@@ -295,14 +319,23 @@ class HypothesesBuilder:
         return observations
 
 
-if __name__ == '__main__':
-    SPARQL_ENDPOINT = "http://localhost:7200/repositories/coda"
-    # TRIPLES = "./triples_32072.csv"
-    OBSERVATIONS, TRIPLES = None, None
-    OBSERVATIONS = "obs_var_mod.csv"
-    HB = HypothesesBuilder(type_h='regular', es_measure='d')
-    # HB(sparql_endpoint=SPARQL_ENDPOINT, triples=TRIPLES)
-    OBS_VAR_MOD = HB(sparql_endpoint=SPARQL_ENDPOINT)
-    OBS_VAR_MOD.to_csv("obs_study_mod.csv")
+@click.command()
+@click.argument("th")
+@click.argument("sparql_endpoint")
+@click.argument("mod_to_category")
+@click.argument("save")
+def main(th, sparql_endpoint, mod_to_category, save):
+    """ Getting data with 'th' type of hypothesis.
+    Special case where ?iv_1 = ?iv_2 """
+    with open(mod_to_category, 'r', encoding="utf-8") as openfile:
+        mod_to_category = json.load(openfile)
+    hb = HypothesesBuilder(type_h=th, es_measure='d', mod_to_category=mod_to_category)
+    output = hb(sparql_endpoint=sparql_endpoint)
+    output.to_csv(save)
 
-    # OBS = HB.get_observations(sparql_endpoint=SPARQL_ENDPOINT)
+
+if __name__ == '__main__':
+    # python src/hg/compute_hypotheses.py regular http://localhost:7200/repositories/coda experiments/cat_moderators.json test.csv
+    # python src/hg/compute_hypotheses.py study_mod http://localhost:7200/repositories/coda experiments/cat_moderators.json test.csv
+    # python src/hg/compute_hypotheses.py var_mod http://localhost:7200/repositories/coda experiments/cat_moderators.json test.csv
+    main()
