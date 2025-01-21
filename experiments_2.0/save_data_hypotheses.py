@@ -17,7 +17,6 @@ from src.hg.sparql_queries import TREATMENT_VALS_T_REGULAR, \
     TREATMENT_VALS_T_VAR_MOD
 
 TYPE_HYPOTHESIS = ['regular', 'var_mod', 'study_mod']
-TYPE_HYPOTHESIS = ['regular']
 ES_MEASURE = ['d']
 
 TYPE_H_TO_TREAT_VALS = {

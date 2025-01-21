@@ -198,8 +198,8 @@ class HypothesesBuilder:
                 obs.at[i, 'ESUpper'] = row['ESUpper'] * -1
                 obs.at[i, 'ESLower'] = row['ESLower'] * -1
 
-            num = ivs_and_cats.loc[(ivs_and_cats[cols[0]] == pred1) & \
-                                   (ivs_and_cats[cols[1]] == pred2) & \
+            num = ivs_and_cats.loc[(ivs_and_cats[cols[0]] == pred2) & \
+                                   (ivs_and_cats[cols[1]] == pred1) & \
                                    (ivs_and_cats[cols[2]] == val2) & \
                                    (ivs_and_cats[cols[3]] == val1)][cols[4]].values[0]
         
