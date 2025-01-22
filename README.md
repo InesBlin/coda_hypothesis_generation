@@ -1,6 +1,6 @@
 # Automated Hypothesis Generation on Human Cooperation
 
-This is the code we submit together with the paper [TO-ADD], submitted to [TO-ADD]. The code contains the followings:
+This is the code we submit together with the paper "Automated Hypothesis Generation for Human Cooperation Studies", submitted to HHAI 2025. The code contains the followings:
 - The core code in the `src` folder, for general usage
 - All elements related to our experiments, including:
     * The data and models, cf. folders `data.zip` and `models`
@@ -14,10 +14,9 @@ We used Python 3.10.8. If you plan to use the OpenAI API, you need to add your A
 API_KEY_GPT = "your-key"
 ```
 
-Installing rpy2 can cause problems with conda, hence we recommend to first install it before installing all the other dependencies.
+To install the dependencies:
 
 ```bash
-conda install rpy2
 pip install -r requirements.txt
 python setup.py install
 cd kglab && python setup.py install

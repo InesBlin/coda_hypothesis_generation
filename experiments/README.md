@@ -58,6 +58,7 @@ All experiments related to classification task (decision trees).
 - `run_final_classification.py`: run final classification on test set with best params
 - `search_hp_classification.py`: search for best parameters
 
+All the experiments related to the more complex classification models are in the `complex` folder.
 
 
 ### Link prediction task
