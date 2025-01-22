@@ -2,7 +2,6 @@
 build/
 *.egg-info
 dist/
-kglab/
 data/
 misc/
 notebooks
