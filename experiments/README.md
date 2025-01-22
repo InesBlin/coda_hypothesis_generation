@@ -2,6 +2,8 @@
 
 This README contains thorough details about the different experiments we ran. We hereafter provide information about the data and the scripts to run for reproducibility of our experiments.
 
+Further detailed results of experiments can be found in the "experiments_detailed_results.pdf" file.
+
 ## Starting scripts
 You first need to retrieve data from the original KG, and to format your data for the right method. Each script will save and format data for all three types of hypothesis.
 
