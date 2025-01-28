@@ -26,9 +26,9 @@ PARAM_GRID = {
     'random_state': [23]
 }
 PARAMS = list(ParameterGrid(PARAM_GRID))
-# N = 300
-# random.seed(23)
-# PARAMS = random.sample(PARAMS, N)
+N = 300
+random.seed(23)
+PARAMS = random.sample(PARAMS, N)
 
 METRICS = ["acc_train", "acc_val"] + \
     [f"{x}_{y}_{z}" for x in ["precision", "recall", "f1"] \

@@ -32,6 +32,13 @@ def split_subject(subject: str, th: str):
         return subject.split("_")[0].split('/')[-1]
     # th == "study_mod" or th == 'var_mod'
     return '_'.join([y.split('/')[-1] for y in subject.split('_')[:2]])
+
+def get_giv(x: str, vocab: pd.DataFrame):
+    """ From x that represents a hypothesis get the corresponding GIV """
+    siv = x.split("_")[0]
+    sppof = "http://www.w3.org/2000/01/rdf-schema#subPropertyOf"
+    giv = vocab[(vocab.s==siv) & (vocab.p==sppof)].values[0][2]
+    return giv
     
 
 def distribute(indexes, train, val, test):
@@ -49,7 +56,7 @@ def distribute(indexes, train, val, test):
     return train_l, val_l, test_l
 
 
-def split_effect_triples(data: pd.DataFrame, tvt_split: Tuple[int, int, int], th: str):
+def split_effect_triples(data: pd.DataFrame, tvt_split: Tuple[int, int, int], th: str, vocab: pd.DataFrame):
     """ Should distribute `effect data` across train/val/test split
     - `effect data`: only concerns the following predicates
         * cp:hasPositiveEffectOn
@@ -65,7 +72,8 @@ def split_effect_triples(data: pd.DataFrame, tvt_split: Tuple[int, int, int], th
         - Else: int(prop*nb)
     """
     check_tvt_prop(tvt_split=tvt_split)
-    data["h_id"] = data["subject"].apply(lambda x: split_subject(x, th))
+    # data["h_id"] = data["subject"].apply(lambda x: split_subject(x, th))
+    data["h_id"] = data["subject"].apply(lambda x: get_giv(x, vocab))
     data_no_reps = data.drop_duplicates()
     grouped = data_no_reps.groupby(["h_id", "predicate"]).agg({"subject": "count"}).reset_index().rename(columns={"subject": "nb"})
 
@@ -114,13 +122,13 @@ def split_effect_triples(data: pd.DataFrame, tvt_split: Tuple[int, int, int], th
     return res
 
 
-def custom_split(data_reg: pd.DataFrame, data_effect: pd.DataFrame, tvt_split_reg: Tuple[int, int, int], tvt_split_effect: Tuple[int, int, int], th: str):
+def custom_split(data_reg: pd.DataFrame, data_effect: pd.DataFrame, vocab: pd.DataFrame, tvt_split_reg: Tuple[int, int, int], tvt_split_effect: Tuple[int, int, int], th: str):
     check_tvt_prop(tvt_split=tvt_split_reg)
     check_tvt_prop(tvt_split=tvt_split_effect)
     spo_cols = ["subject", "predicate", "object"]
     sh = TriplesFactory.from_labeled_triples(data_reg[spo_cols].values)
     # sh_train, sh_val, sh_test = sh.split(tvt_split_reg, random_state=23)
-    c_split = split_effect_triples(data=data_effect, tvt_split=tvt_split_effect, th=th)
+    c_split = split_effect_triples(data=data_effect, tvt_split=tvt_split_effect, th=th, vocab=vocab)
     res = {
         "train": pd.concat([pd.DataFrame(sh.triples, columns=spo_cols), c_split["train"]]),
         "val": c_split["val"],
@@ -131,14 +139,15 @@ def custom_split(data_reg: pd.DataFrame, data_effect: pd.DataFrame, tvt_split_re
 
 class BNLinkPredictor:
     """ LP for blank node hypotheses """
-    def __init__(self, dr: str, de: str, th: str,
+    def __init__(self, dr: str, de: str, th: str, vocab: str,
                  tvt_reg: Tuple[int, int, int] = [0.8, 0.1, 0.1],
                  tvt_effect: Tuple[int, int, int] = [0.8, 0.1, 0.1]):
         self.dr = pd.read_csv(dr, index_col=0).dropna()
         self.de = pd.read_csv(de, index_col=0).dropna()
 
+        self.vocab = pd.read_csv(vocab)
         self.triples = custom_split(
-            data_reg=self.dr, data_effect=self.de,
+            data_reg=self.dr, data_effect=self.de, vocab=self.vocab,
             tvt_split_reg=tvt_reg, tvt_split_effect=tvt_effect, th=th)
         print({k: v.num_triples for k, v in self.triples.items()})
     
@@ -164,9 +173,11 @@ class BNLinkPredictor:
 if __name__ == '__main__':
     FOLDER_IN = "./test_bnlp"
     TH, ES = "regular", "d"
+    VOCAB = "./data/vocab.csv"
     BN_LP = BNLinkPredictor(dr=os.path.join(FOLDER_IN, f"h_{TH}_es_{ES}_random.csv"),
                             de=os.path.join(FOLDER_IN, f"h_{TH}_es_{ES}_effect.csv"),
                             th=TH,
+                            vocab=VOCAB,
                             tvt_reg=[0.8, 0.1, 0.1],
                             tvt_effect=[0.8, 0.1, 0.1],
                             )

@@ -9,7 +9,7 @@ import numpy as np
 from loguru import logger
 from src.hg.embed_hypotheses import HypothesesEmbedder
 
-ES_MEASURES = ["d", "r"]
+ES_MEASURES = ["d"]
 LABELS = ["regular", "var_mod", "study_mod"]
 COLUMNS = [
     ["giv_prop", "iv_1", "cat_t1", "iv_2", "cat_t2", "dependent"],
@@ -26,8 +26,9 @@ CLASSES_TO_ID = {
 }
 
 @click.command()
+@click.argument("input_folder")
 @click.argument("save_folder")
-def main(save_folder):
+def main(input_folder, save_folder):
     """ Retrieving data for all hypothesis type and es measures """
     if not os.path.exists(save_folder):
         os.makedirs(save_folder)
@@ -41,14 +42,14 @@ def main(save_folder):
             logger.info(f"Fetching embeddings for hypothesis `{LABELS[i]}` with effect size measure `{es}`")
             save_path = os.path.join(save_folder, f"h_{LABELS[i]}_es_{es}_x.npy")
             if not os.path.exists(save_path):
-                data = pd.read_csv(f"./data/hypotheses/classification/h_{LABELS[i]}_es_{es}.csv", index_col=0).reset_index(drop=True)
+                data = pd.read_csv(os.path.join(input_folder, f"h_{LABELS[i]}_es_{es}.csv"), index_col=0).reset_index(drop=True)
                 output_x, output_y = he(data=data)
                 np.save(save_path, output_x)
                 np.save(save_path.replace("_x", "_y"), output_y)
 
 
 if __name__ == '__main__':
-    # python experiments/hp_kg_embed/save_embedding_classification.py ./data/hypotheses/embeds
+    # python experiments/hp_kg_embed/save_embedding_classification.py ./data/hypotheses/classification ./data/hypotheses/embeds
     main()
 
     

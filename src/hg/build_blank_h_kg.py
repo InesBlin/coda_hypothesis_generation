@@ -67,7 +67,9 @@ class BlankHypothesesKGBuilder:
             # ("range_class_mod", f"{self.prefixes['rdfs']}subClassOf", "range_superclass_mod", {}),
 
             # Newly added data with hypotheses
-            ("iv_new_unique", f"{self.prefixes['rdfs']}subPropertyOf", "iv", {}),
+            ("iv_new_unique", f"{self.prefixes['rdfs']}subPropertyOf", "giv_prop", {}),
+            ("iv_new_unique", f"{self.prefixes['cp']}siv1", "siv_1", {}),
+            ("iv_new_unique", f"{self.prefixes['cp']}siv2", "siv_2", {}),
             ("iv_new_unique", f"{self.prefixes['cp']}sivv1", "cat_t1", {}),
             ("iv_new_unique", f"{self.prefixes['cp']}sivv2", "cat_t2", {}),
             ("iv_new_unique", f"{self.prefixes['cp']}mod1", "mod_t1", {}),

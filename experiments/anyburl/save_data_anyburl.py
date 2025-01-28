@@ -15,13 +15,14 @@ ES_MEASURE = ['d']
 TVT_SPLIT = [0.8, 0.1, 0.1]
 
 def split(data_reg: pd.DataFrame, data_effect: pd.DataFrame,
-          tvt_split: Tuple[float, float, float], th: str):
+          tvt_split: Tuple[float, float, float], th: str,
+          vocab: pd.DataFrame):
     """ split data: only the effect triples are split intro train/val/test,
     the rest is in the train set """
     check_tvt_prop(tvt_split=tvt_split)
     spo_cols = ["subject", "predicate", "object"]
     sh = TriplesFactory.from_labeled_triples(data_reg[spo_cols].values)
-    c_split = split_effect_triples(data=data_effect, tvt_split=tvt_split, th=th)
+    c_split = split_effect_triples(data=data_effect, tvt_split=tvt_split, th=th, vocab=vocab)
 
     res = {
         "train": pd.concat([pd.DataFrame(sh.triples, columns=spo_cols), c_split["train"]]),
@@ -33,10 +34,12 @@ def split(data_reg: pd.DataFrame, data_effect: pd.DataFrame,
 @click.command()
 @click.argument("folder_in")
 @click.argument("folder_out")
-def main(folder_in, folder_out):
+@click.argument("vocab")
+def main(folder_in, folder_out, vocab):
     """ Main to save train/val/test data (only format that is compatible with AnyBURL) """
     if not os.path.exists(folder_out):
         os.makedirs(folder_out)
+    vocab = pd.read_csv(vocab)
     for th in TYPE_HYPOTHESIS:
         for esm in ES_MEASURE:
             logger.info(f"Saving data for AnyBURL for `{th}` with effect size measure `{esm}`")
@@ -46,7 +49,7 @@ def main(folder_in, folder_out):
                     os.path.join(folder_in, f"h_{th}_es_{esm}_random.csv"), index_col=0).dropna()
                 data_effect = pd.read_csv(
                     os.path.join(folder_in, f"h_{th}_es_{esm}_effect.csv"), index_col=0).dropna()
-                res = split(data_reg, data_effect, TVT_SPLIT, th)
+                res = split(data_reg, data_effect, TVT_SPLIT, th, vocab)
                 for key, df in res.items():
                     df.to_csv(save_path.replace("train_", f"{key}_"), sep="\t", index=False, header=False)
 

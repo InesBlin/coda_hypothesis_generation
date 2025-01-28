@@ -32,7 +32,8 @@ COLUMNS = list(sorted(PARAM_GRID.keys())) + METRICS
 @click.command()
 @click.argument("folder_in")
 @click.argument("folder_out")
-def main(folder_in, folder_out):
+@click.argument("vocab")
+def main(folder_in, folder_out, vocab):
     """ Main, running the grid """
     if not os.path.exists(folder_out):
         os.makedirs(folder_out)
@@ -53,6 +54,7 @@ def main(folder_in, folder_out):
 
             bn_lp = BNLinkPredictor(dr=os.path.join(folder_in, f"h_{th}_es_{es}_random.csv"),
                                     de=os.path.join(folder_in, f"h_{th}_es_{es}_effect.csv"),
+                                    vocab=vocab,
                                     th=th)
             for config in tqdm(params):
                 pipeline = bn_lp.init_hp_pipeline(
@@ -70,5 +72,5 @@ def main(folder_in, folder_out):
 
 
 if __name__ == '__main__':
-    # python experiments/hp_bn_lp/search_hp_bn_lp.py data/hypotheses/bn/ experiments/hp_bn_lp/
+    # python experiments/hp_bn_lp/search_hp_bn_lp.py data/hypotheses/bn/ experiments/hp_bn_lp/ data/vocab.csv
     main()
