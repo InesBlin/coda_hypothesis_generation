@@ -1,6 +1,8 @@
 # Automated Hypothesis Generation on Human Cooperation
 
-This is the code we submit together with the paper "Automated Hypothesis Generation for Human Cooperation Studies", submitted to HHAI 2025. The code contains the followings:
+This repository contains the code accompanying the paper "Automated Hypothesis Generation for Human Cooperation Studies", accepted as a research paper to HHAI 2025. 
+
+The code contains the followings:
 - The core code in the `src` folder, for general usage
 - All elements related to our experiments, including:
     * The data and models, cf. folders `data.zip` and `models`
@@ -27,3 +29,15 @@ cd kglab && python setup.py install
 - `src/helpers`: various helpers used throughout the code
 - `src/knowledge.py`: human-readable hypothesis generation
 - `src/hg`: all classes related to hypothesis generation
+
+## Acknowledgements
+
+If you use this work please cite the following paper:
+```bib
+{
+    to add when proceedings are published
+}
+```
+
+This work was partly funded by the European
+[MUHAI](https://muhai.org) project, grant no. 951846, and by the XS NWO Project, grant no. [406.XS.04.118](https://www.nwo.nl/en/projects/406xs04118). We also thank our reviewers for constructive comments.
