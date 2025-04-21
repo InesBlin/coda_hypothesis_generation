@@ -13,7 +13,7 @@ setuptools==70.0.0
 spacy==3.4.2
 streamlit==1.37.0
 tensorflow==2.12.1
-torch==2.4.0
+torch==2.6.0
 tqdm==4.66.3
 transformers==4.48.0
 validator_collection==1.5.0
